@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>高中化学精品课：电解质的电离</title>
+    <style>
+        :root {
+            --brand: #1a73e8; --success: #34a853; --warning: #fbbc04;
+            --danger: #ea4335; --dark: #2c3e50; --light: #fdfdfe;
+        }
+        body { font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif; margin: 0; display: flex; background: #f0f4f8; color: #333; line-height: 1.6; }
+        
+        /* ======== 导航侧边栏 ======== */
+        .sidebar { width: 280px; background: var(--dark); color: white; height: 100vh; position: fixed; box-shadow: 2px 0 15px rgba(0,0,0,0.15); z-index: 1000; overflow-y: auto; }
+        .nav-header { padding: 30px 20px; background: #1a252f; border-bottom: 1px solid #34495e; text-align: center; }
+        .nav-header h2 { margin: 0; font-size: 1.3em; color: #ecf0f1; }
+        .nav-item { padding: 18px 25px; cursor: pointer; transition: 0.3s; border-left: 5px solid transparent; font-size: 1em; border-bottom: 1px solid #34495e; }
+        .nav-item:hover { background: #34495e; }
+        .nav-item.active { background: #34495e; border-left-color: var(--brand); color: #fff; font-weight: bold; }
+
+        /* ======== 主舞台 ======== */
+        .main { margin-left: 280px; padding: 40px; width: calc(100% - 360px); max-width: 1000px; }
+        .section { display: none; background: white; padding: 45px; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); }
+        .section.active { display: block; animation: fadeInUp 0.5s ease; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        h1 { color: var(--brand); border-bottom: 2px solid #e1e8ed; padding-bottom: 10px; margin-top: 0; }
+        h3 { color: #2c3e50; margin-bottom: 15px; }
+
+        /* ======== 化学式防乱码完美排版 ======== */
+        .chem-formula { font-family: 'Arial', sans-serif; font-size: 1.15em; font-weight: bold; color: #c0392b; letter-spacing: 0.5px; }
+        sub, sup { font-size: 0.7em; line-height: 0; position: relative; vertical-align: baseline; margin: 0 1px; }
+        sup { top: -0.45em; } 
+        sub { bottom: -0.25em; }
+        .options-grid { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 15px; font-size: 1.05em; }
+        .options-grid div { background: #f8f9fa; padding: 12px 25px; border-radius: 8px; border: 1px solid #eee; min-width: 120px; }
+
+        /* ======== 动画1：人体精确导电动画 ======== */
+        .stage-wrapper { text-align: center; margin: 25px 0; }
+        .stage-box { width: 600px; height: 380px; margin: 0 auto; position: relative; background: #e8f0fe; border-radius: 15px; border: 2px solid #aecbfa; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,0.05); }
+        .desk { position: absolute; bottom: 0; width: 100%; height: 60px; background: #8d6e63; border-top: 5px solid #5d4037; z-index: 5; }
+        
+        .lamp-unit { position: absolute; top: 25px; left: 50%; transform: translateX(-50%); z-index: 10; }
+        .light-bulb { width: 70px; height: 90px; background: #e0e0e0; border-radius: 35px 35px 15px 15px; margin: 0 auto; transition: 0.3s; border: 2px solid #9e9e9e; }
+        .light-bulb.lit { background: #fff59d; border-color: #fbc02d; box-shadow: 0 0 60px #ffeb3b; }
+        
+        .electrode { position: absolute; bottom: 60px; width: 20px; height: 100px; border-radius: 10px; z-index: 8; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); }
+        #elec-l { left: 90px; background: linear-gradient(to right, #d35400, #e67e22); }
+        #elec-r { right: 90px; background: linear-gradient(to right, #7f8c8d, #bdc3c7); }
+        .label-tag { position: absolute; bottom: -25px; left: -20px; background: #fff; padding: 2px 0; font-size: 12px; border-radius: 4px; border: 1px solid #ccc; width: 60px; text-align: center; z-index: 12; }
+
+        .student { position: absolute; bottom: 60px; left: 50%; margin-left: -35px; width: 70px; height: 160px; z-index: 10; }
+        .s-head { width: 50px; height: 50px; background: #ffccbc; border-radius: 50%; margin: 0 auto; border: 2px solid #d84315; }
+        .s-body { width: 70px; height: 110px; background: #1976d2; border-radius: 15px 15px 0 0; margin: 0 auto; }
+        
+        .s-arm { position: absolute; top: 60px; height: 16px; background: #ffccbc; border-radius: 8px; border: 2px solid #d84315; transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1); z-index: 11; }
+        #armL { right: 45px; width: 50px; transform-origin: right center; transform: rotate(75deg); }
+        #armR { left: 45px; width: 50px; transform-origin: left center; transform: rotate(-75deg); }
+        /* 精确握住电极的坐标 */
+        .arm-active-l { width: 185px !important; transform: rotate(8deg) !important; }
+        .arm-active-r { width: 185px !important; transform: rotate(-8deg) !important; }
+
+        /* ======== 动画2：微观解离粒子动画 ======== */
+        #microStage { width: 100%; height: 280px; background: #fdfdfd; border: 2px solid #aecbfa; border-radius: 12px; position: relative; overflow: hidden; margin-top: 15px; box-shadow: inset 0 0 15px rgba(0,0,0,0.05); }
+        .micro-particle { position: absolute; width: 28px; height: 28px; border-radius: 50%; color: white; font-size: 11px; line-height: 28px; text-align: center; font-weight: bold; transition: all 1.8s cubic-bezier(0.25, 1, 0.5, 1); box-shadow: 2px 2px 6px rgba(0,0,0,0.2); }
+
+        /* ======== 隐藏答案卡片 ======== */
+        .qa-card { border: 1px solid #e0e6ed; border-radius: 12px; margin: 20px 0; background: #fff; overflow: hidden; }
+        .qa-header { padding: 18px 25px; background: #f8f9fa; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.05em; transition: 0.2s; }
+        .qa-header:hover { background: #eef2f5; }
+        .qa-body { padding: 25px; display: none; border-top: 1px solid #eee; background: #fff; border-left: 5px solid var(--brand); color: #444; }
+        .qa-body.open { display: block; animation: slideDown 0.3s ease; }
+
+        /* ======== 通用按钮样式 ======== */
+        button.btn-action { background: var(--brand); color: white; border: none; padding: 12px 30px; border-radius: 30px; cursor: pointer; font-size: 1em; font-weight: bold; transition: 0.3s; margin: 5px; box-shadow: 0 4px 10px rgba(26,115,232,0.3); }
+        button.btn-action:hover { transform: translateY(-2px); background: #1557b0; }
+        
+        /* ======== 科学家徽章 ======== */
+        .portrait-grid { display: flex; gap: 30px; justify-content: center; margin-top: 20px; }
+        .portrait-card { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 25px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 45%; }
+        .portrait-icon { width: 100px; height: 100px; margin: 0 auto 15px auto; }
+        .portrait-card h4 { margin: 10px 0; font-size: 1.2em; color: var(--brand); }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="nav-header">
+        <h2>电解质的电离</h2>
+        <p style="color:#bdc3c7; font-size:0.85em; margin-top:5px;">高中化学必修一</p>
+    </div>
+    <div class="nav-item active" onclick="showPart(1)">1. 趣味导入：人体导电</div>
+    <div class="nav-item" onclick="showPart(2)">2. 实验探究：电离本质</div>
+    <div class="nav-item" onclick="showPart(3)">3. 符号表征：方程式书写</div>
+    <div class="nav-item" onclick="showPart(4)">4. 概念进阶：酸碱盐本质</div>
+    <div class="nav-item" onclick="showPart(5)">5. 分组实验：概念辨析</div>
+    <div class="nav-item" onclick="showPart(6)">6. 课堂小结：知识图谱</div>
+    <div class="nav-item" onclick="showPart(7)">7. 达标检测：回归生活</div>
+</div>
+
+<div class="main">
+    <div id="part1" class="section active">
+        <h1>🌟 环节一：情景导入 - 人体导电仪</h1>
+        <p><b>教师引导：</b>生活中湿手不能触碰电源。今天老师带来一个“人体导电灯”，在断电状态下，当演示学生伸出双手分别握住左右两根金属电极时……</p>
+        
+        <div class="stage-wrapper">
+            <div class="stage-box">
+                <div class="lamp-unit"><div id="bulb" class="light-bulb"></div></div>
+                <div class="electrode" id="elec-l"><div class="label-tag">铜电极</div></div>
+                <div class="electrode" id="elec-r"><div class="label-tag">锌电极</div></div>
+                <div class="student">
+                    <div class="s-head"></div>
+                    <div class="s-body"><div style="color:white; text-align:center; padding-top:20px; font-weight:bold;">演示者</div></div>
+                    <div id="armL" class="s-arm"></div>
+                    <div id="armR" class="s-arm"></div>
+                </div>
+                <div class="desk"></div>
+            </div>
+        </div>
+        
+        <div style="text-align:center;">
+            <button class="btn-action" onclick="startHumanExp()">点击模拟：伸出双手紧握电极</button>
+            <button class="btn-action" style="background:#7f8c8d;" onclick="resetHumanExp()">松开双手</button>
+        </div>
+
+        <div class="qa-card" style="margin-top: 30px;">
+            <div class="qa-header" onclick="toggleAnswer(this)">🤔 思考：断电的灯泡为什么亮了？人体为什么能导电？ <span>▼点击查看核心知识点</span></div>
+            <div class="qa-body">
+                人体内不仅含有大量水分，体液中还溶解了大量的<b>电解质</b>（如氯化钠等）。<br><br>
+                这些电解质在体液中解离出了<b>能自由移动的离子</b>（如 <span class="chem-formula">Na<sup>+</sup></span>、<span class="chem-formula">Cl<sup>-</sup></span>），当双手握住电极时，离子定向移动形成了闭合电路，使得灯泡发光。这说明<b>人体是一个良导体</b>。
+            </div>
+        </div>
+    </div>
+
+    <div id="part2" class="section">
+        <h1>🚗 环节二：盐水动力小车与电离本质</h1>
+        
+        <p>关于“盐水动力小车”实验（不需要电池，仅靠“盐水”就能驱动小车），请同学们思考以下问题：</p>
+
+        <div class="qa-card">
+            <div class="qa-header" onclick="toggleAnswer(this)">提问：① 氯化钠固体能不能导电？为什么？ <span>▼解析</span></div>
+            <div class="qa-body">
+                <b>不能导电。</b>虽然 NaCl 固体中有离子，但被紧紧束缚在晶格节点上，<b>不能自由移动</b>。
+            </div>
+        </div>
+
+        <div class="qa-card" style="border-left-color: var(--success);">
+            <div class="qa-header" onclick="toggleAnswer(this)">提问：② 氯化钠溶液为什么能导电？ <span>▼开启微观动画观察</span></div>
+            <div class="qa-body">
+                <b>能导电。</b>小车能跑的奥秘在于：NaCl 溶于水后，解离成了<b>能自由移动的离子</b>（<span class="chem-formula">Na<sup>+</sup></span> 和 <span class="chem-formula">Cl<sup>-</sup></span>）。
+                
+                <div id="microStage">
+                    <p style="text-align:center; margin-top:120px; color:#999; font-weight:bold;">点击下方按钮启动微观视野</p>
+                </div>
+                <div style="text-align:center; margin-top: 15px;">
+                    <button class="btn-action" style="background:var(--success);" onclick="playMicro()">生成晶体并解离 (微观模拟)</button>
+                </div>
+            </div>
+        </div>
+
+        <div style="background:#fff9c4; padding:25px; border-radius:10px; margin-top:30px;">
+            <h3 style="margin-top:0;">👨‍🔬 科学史话：谁揭开了导电的秘密？</h3>
+            <div class="portrait-grid">
+                
+                <div class="portrait-card">
+                    <div class="portrait-icon">
+                        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#4facfe;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <circle cx="50" cy="50" r="50" fill="url(#grad1)"/>
+                            <path d="M 30 70 L 30 40 Q 50 15 70 40 L 70 70" fill="none" stroke="white" stroke-width="8" stroke-linecap="round"/>
+                            <line x1="15" y1="50" x2="85" y2="50" stroke="white" stroke-width="6"/>
+                            <line x1="15" y1="65" x2="85" y2="65" stroke="white" stroke-width="6"/>
+                            <circle cx="50" cy="85" r="6" fill="#fff"/>
+                        </svg>
+                    </div>
+                    <h4>法拉第 (Faraday)</h4>
+                    <p style="font-size:0.9em; text-align:left;">19世纪早期，法拉第认为：电解质是<b>“通电后才产生离子”</b>的。</p>
+                </div>
+
+                <div class="portrait-card">
+                    <div class="portrait-icon">
+                        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#43e97b;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#38f9d7;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <circle cx="50" cy="50" r="50" fill="url(#grad2)"/>
+                            <path d="M 35 25 L 35 45 L 20 75 A 8 8 0 0 0 25 85 L 75 85 A 8 8 0 0 0 80 75 L 65 45 L 65 25" fill="rgba(255,255,255,0.3)" stroke="white" stroke-width="5"/>
+                            <line x1="28" y1="25" x2="72" y2="25" stroke="white" stroke-width="5" stroke-linecap="round"/>
+                            <circle cx="35" cy="65" r="5" fill="white"/>
+                            <circle cx="65" cy="70" r="4" fill="white"/>
+                            <circle cx="50" cy="75" r="6" fill="white"/>
+                            <path d="M 45 40 Q 50 30 55 40 T 45 50" fill="none" stroke="white" stroke-width="3"/>
+                        </svg>
+                    </div>
+                    <h4>阿伦尼乌斯 (Arrhenius)</h4>
+                    <p style="font-size:0.9em; text-align:left;">瑞典化学家提出：电解质<b>“溶于水就自发电离，不需要通电”</b>！获诺贝尔奖。</p>
+                </div>
+                
+            </div>
+            <p style="text-align:center; color: #d35400; font-weight:bold; margin-top: 15px;">★ 重点牢记：电离是自发过程，不需要通电！</p>
+        </div>
+    </div>
+
+    <div id="part3" class="section">
+        <h1>✍️ 环节三：符号表征 - 电离方程式</h1>
+        
+        <div style="background:#e8f4fd; padding:25px; border-radius:12px; margin-bottom: 20px;">
+            <h3 style="margin-top:0;">1. 教师示范</h3>
+            <p><span class="chem-formula">NaCl = Na<sup>+</sup> + Cl<sup>-</sup></span></p>
+            <p><span class="chem-formula">HCl = H<sup>+</sup> + Cl<sup>-</sup></span></p>
+            <p><span class="chem-formula">NaOH = Na<sup>+</sup> + OH<sup>-</sup></span></p>
+        </div>
+
+        <div style="background:#fff3e0; padding:25px; border-radius:12px; border-left: 5px solid #ff9800;">
+            <h3 style="margin-top:0;">2. 书写规则归纳</h3>
+            <ol style="font-size:1.05em; line-height:1.8;">
+                <li><b>原子守恒与电荷守恒：</b>方程式左右两边原子种类、数目必须相同，且正负电荷代数和为零。</li>
+                <li><b>原子团不拆：</b>如 <span class="chem-formula">SO<sub>4</sub><sup>2-</sup></span>、<span class="chem-formula">OH<sup>-</sup></span> 作为一个整体书写。</li>
+                <li><b>符号准确：</b>强电解质用“=”号，弱电解质用可逆符号。</li>
+            </ol>
+        </div>
+
+        <div class="qa-card">
+            <div class="qa-header" onclick="toggleAnswer(this)">✏️ 课堂演练：请书写硫酸和硝酸钡的电离方程式 <span>▼核对答案</span></div>
+            <div class="qa-body">
+                <p>1. 硫酸 (<span class="chem-formula">H<sub>2</sub>SO<sub>4</sub></span>) 的电离方程式：</p>
+                <p><span class="chem-formula">H<sub>2</sub>SO<sub>4</sub> = 2H<sup>+</sup> + SO<sub>4</sub><sup>2-</sup></span></p>
+                <br>
+                <p>2. 硝酸钡 (<span class="chem-formula">Ba(NO<sub>3</sub>)<sub>2</sub></span>) 的电离方程式：</p>
+                <p><span class="chem-formula">Ba(NO<sub>3</sub>)<sub>2</sub> = Ba<sup>2+</sup> + 2NO<sub>3</sub><sup>-</sup></span></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="part4" class="section">
+        <h1>🔍 环节四：模型构建 - 重新定义酸碱盐</h1>
+        
+        <div class="qa-card">
+            <div class="qa-header" onclick="toggleAnswer(this)">探究 1：观察 <span class="chem-formula">HCl</span>、<span class="chem-formula">H<sub>2</sub>SO<sub>4</sub></span>，阳离子有何共同点？ <span>▼归纳【酸】</span></div>
+            <div class="qa-body" style="background:#ffebee; border-left-color: #f44336;">
+                <b>【酸的本质】</b>：电解质电离时生成的阳离子<b>全部</b>是 <span class="chem-formula">H<sup>+</sup></span> 的化合物。
+            </div>
+        </div>
+
+        <div class="qa-card">
+            <div class="qa-header" onclick="toggleAnswer(this)">探究 2：观察 <span class="chem-formula">NaOH</span>、<span class="chem-formula">Ca(OH)<sub>2</sub></span>，阴离子有何共同点？ <span>▼归纳【碱】</span></div>
+            <div class="qa-body" style="background:#e8f5e9; border-left-color: #4caf50;">
+                <b>【碱的本质】</b>：电解质电离时生成的阴离子<b>全部</b>是 <span class="chem-formula">OH<sup>-</sup></span> 的化合物。
+            </div>
+        </div>
+
+        <div class="qa-card">
+            <div class="qa-header" onclick="toggleAnswer(this)">探究 3：观察 <span class="chem-formula">NaCl</span>、<span class="chem-formula">Na<sub>2</sub>CO<sub>3</sub></span>，它们电离出了什么？ <span>▼归纳【盐】</span></div>
+            <div class="qa-body" style="background:#fff8e1; border-left-color: #ffc107;">
+                <b>【盐的本质】</b>：电解质电离时生成金属阳离子（或 <span class="chem-formula">NH<sub>4</sub><sup>+</sup></span>）和酸根阴离子的化合物。
+            </div>
+        </div>
+    </div>
+
+    <div id="part5" class="section">
+        <h1>⚖️ 环节五：分组实验 - 物质导电性与概念辨析</h1>
+        <p>请同学们用微型导电仪测试桌上的试剂，我们汇总结果如下：</p>
+        
+        <table style="width:100%; border-collapse: collapse; margin: 20px 0; font-size: 1.05em;">
+            <thead>
+                <tr style="background:#2c3e50; color:white;">
+                    <th style="padding:15px; border:1px solid #34495e;">测试物质</th>
+                    <th style="padding:15px; border:1px solid #34495e;">灯泡现象</th>
+                    <th style="padding:15px; border:1px solid #34495e;">微观微粒状态</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="background:#fff;"><td style="padding:15px; border:1px solid #ddd; font-weight:bold;">盐酸 / NaOH溶液</td><td style="color:#27ae60; font-weight:bold;">发光 (导电)</td><td style="border:1px solid #ddd;">含有大量自由移动的离子</td></tr>
+                <tr style="background:#f9f9f9;"><td style="padding:15px; border:1px solid #ddd; font-weight:bold;">酒精 / 蔗糖溶液</td><td style="color:#c0392b; font-weight:bold;">不发光 (不导电)</td><td style="border:1px solid #ddd;">以分子形式存在，不产生离子</td></tr>
+                <tr style="background:#fff;"><td style="padding:15px; border:1px solid #ddd; font-weight:bold;">NaCl 固体</td><td style="color:#c0392b; font-weight:bold;">不发光 (不导电)</td><td style="border:1px solid #ddd;">离子被束缚在晶格中，不能移动</td></tr>
+                <tr style="background:#f9f9f9;"><td style="padding:15px; border:1px solid #ddd; font-weight:bold;">无水浓硫酸</td><td style="color:#c0392b; font-weight:bold;">不发光 (不导电)</td><td style="border:1px solid #ddd;">纯净物，以分子形式存在，无水不电离</td></tr>
+            </tbody>
+        </table>
+
+        <div style="background:#e1f5fe; padding:30px; border-radius:15px; border-left:10px solid var(--brand); box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            <h3 style="margin-top:0;">📌 核心考点：电解质与非电解质的严谨定义</h3>
+            <p><b>【电解质】：</b>在水溶液里 <b>或者</b> 熔融状态下能导电的 <b>化合物</b>。（如酸、碱、盐、水）</p>
+            <p><b>【非电解质】：</b>在水溶液里 <b>和</b> 熔融状态下都不导电的 <b>化合物</b>。（如蔗糖、酒精、二氧化碳）</p>
+            
+            <div style="background:#ffebee; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                <p style="color:var(--danger); font-weight:bold; margin:0;">🚨 致命易错点：</p>
+                <ul style="margin-top: 10px; color: #b71c1c;">
+                    <li><b>单质</b>（如铜丝导电）和 <b>混合物</b>（如盐酸导电）因为不属于化合物，所以它们<b>既不是电解质，也不是非电解质！</b></li>
+                    <li><span class="chem-formula">CO<sub>2</sub></span> 溶于水导电是因为生成了碳酸，而不是它本身电离，所以它是非电解质。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="part6" class="section">
+        <h1>📋 环节六：课堂归纳小结</h1>
+        <p>本节课我们完成了从现象到本质、从宏观到微观的化学思维跨越，请同学们记录核心知识图谱：</p>
+        
+        <div style="display: flex; flex-direction: column; gap: 20px; background: #f8f9fa; padding: 30px; border-radius: 16px; border: 1px solid #dee2e6;">
+            <div style="display: flex; align-items: center;">
+                <div style="background: #3498db; color: white; padding: 15px 25px; border-radius: 8px; font-weight: bold; width: 120px; text-align: center;">宏观辨识</div>
+                <div style="font-size: 24px; color: #3498db; margin: 0 20px;">➡</div>
+                <div style="flex: 1; background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                    <b>导电现象与分类：</b><br>能导电不一定是电解质（如金属、盐酸）。电解质必须是<b>化合物</b>。常见电解质包含酸、碱、盐和水。
+                </div>
+            </div>
+
+            <div style="display: flex; align-items: center;">
+                <div style="background: #e74c3c; color: white; padding: 15px 25px; border-radius: 8px; font-weight: bold; width: 120px; text-align: center;">微观探析</div>
+                <div style="font-size: 24px; color: #e74c3c; margin: 0 20px;">➡</div>
+                <div style="flex: 1; background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                    <b>电离的本质：</b><br>化合物在溶于水或熔融状态下，自发解离出<b>自由移动离子</b>的过程。强调：电离不需要通电！
+                </div>
+            </div>
+
+            <div style="display: flex; align-items: center;">
+                <div style="background: #2ecc71; color: white; padding: 15px 25px; border-radius: 8px; font-weight: bold; width: 120px; text-align: center;">符号表征</div>
+                <div style="font-size: 24px; color: #2ecc71; margin: 0 20px;">➡</div>
+                <div style="flex: 1; background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                    <b>电离方程式与酸碱盐：</b><br>严格遵守原子守恒与电荷守恒。通过电离生成的特定离子（<span class="chem-formula">H<sup>+</sup></span> 或 <span class="chem-formula">OH<sup>-</sup></span>），严谨定义了酸和碱。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="part7" class="section">
+        <h1>🏆 环节七：当堂达标与回归生活</h1>
+        
+        <h3 style="border-left: 4px solid var(--brand); padding-left: 10px;">一、当堂检测</h3>
+        
+        <div class="qa-card">
+            <div class="qa-header" onclick="toggleAnswer(this)">1. 判断：电解质一定能导电，能导电的物质一定是电解质。（ ） <span>▼查看解析</span></div>
+            <div class="qa-body">
+                <b>两句话都错。</b><br>
+                ① 电解质在固体状态（如 <span class="chem-formula">NaCl</span> 晶体）下不能导电，只有溶于水或熔融时才导电。<br>
+                ② 能导电的物质可能是金属单质（如铜）或混合物（如盐水），它们都不是化合物，不属于电解质。
+            </div>
+        </div>
+        
+        <div class="qa-card">
+            <div class="qa-header" onclick="toggleAnswer(this)">2. 下列物质属于电解质的是（ ） <span>▼查看解析</span></div>
+            <div class="qa-body">
+                <div class="options-grid">
+                    <div>A. 铜丝</div>
+                    <div>B. <span class="chem-formula">CO<sub>2</sub></span></div>
+                    <div>C. <span class="chem-formula">NaCl</span></div>
+                    <div>D. 稀盐酸</div>
+                </div>
+                <hr style="border:0; border-top:1px dashed #ccc; margin:15px 0;">
+                <b>正确答案：C</b><br>
+                解析：A 是单质（不属于），B 是非电解质（本身不能电离），D 是溶液属于混合物（不属于）。C 是化合物且溶于水能导电，是典型的电解质。
+            </div>
+        </div>
+
+        <div class="qa-card">
+            <div class="qa-header" onclick="toggleAnswer(this)">3. 下列物质不能电离出 <span class="chem-formula">Cl<sup>-</sup></span> 的是（ ） <span>▼查看解析</span></div>
+            <div class="qa-body">
+                <div class="options-grid">
+                    <div>A. <span class="chem-formula">KCl</span></div>
+                    <div>B. <span class="chem-formula">KClO<sub>3</sub></span></div>
+                    <div>C. <span class="chem-formula">HCl</span></div>
+                    <div>D. <span class="chem-formula">MgCl<sub>2</sub></span></div>
+                </div>
+                <hr style="border:0; border-top:1px dashed #ccc; margin:15px 0;">
+                <b>正确答案：B</b><br>
+                解析：氯酸钾中的原子团是氯酸根 (<span class="chem-formula">ClO<sub>3</sub><sup>-</sup></span>)，电离方程式为 <span class="chem-formula">KClO<sub>3</sub> = K<sup>+</sup> + ClO<sub>3</sub><sup>-</sup></span>，原子团不拆，无法单独拆解出游离的氯离子。
+            </div>
+        </div>
+
+        <h3 style="border-left: 4px solid #f39c12; padding-left: 10px; margin-top: 40px;">二、回归生活，学以致用</h3>
+        <div style="background:#fff3e0; padding:25px; border-radius:12px;">
+            <p><b>① 湿手为什么易触电？</b><br>
+            生活用水中溶解了微量的杂质（盐类等电解质），它们在水中电离出了自由移动的离子，大大增加了水的导电能力，从而增加触电风险。</p>
+            
+            <p style="margin-top: 15px;"><b>② 人体导电的奥秘是什么？</b><br>
+            我们的血液、细胞液中含有大量的 <span class="chem-formula">Na<sup>+</sup></span>、<span class="chem-formula">Cl<sup>-</sup></span>、<span class="chem-formula">K<sup>+</sup></span> 等离子。这些电解质解离出的离子，不仅让人体能导电，更是维持人体渗透压平衡和神经电信号传导不可或缺的微观使者！</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showPart(n) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        document.getElementById('part' + n).classList.add('active');
+        document.querySelectorAll('.nav-item')[n-1].classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function toggleAnswer(el) {
+        el.nextElementSibling.classList.toggle('open');
+    }
+
+    // --- 动画1：人体导电精确握住电极 ---
+    let expActive = false;
+    function startHumanExp() {
+        if(expActive) return;
+        expActive = true;
+        const armL = document.getElementById('armL');
+        const armR = document.getElementById('armR');
+        
+        armL.classList.add('arm-active-l');
+        armR.classList.add('arm-active-r');
+        
+        setTimeout(() => {
+            document.getElementById('bulb').classList.add('lit');
+            document.getElementById('elec-l').style.boxShadow = "0 0 20px #ffeb3b";
+            document.getElementById('elec-r').style.boxShadow = "0 0 20px #ffeb3b";
+        }, 600);
+    }
+
+    function resetHumanExp() {
+        expActive = false;
+        const armL = document.getElementById('armL');
+        const armR = document.getElementById('armR');
+        
+        armL.classList.remove('arm-active-l');
+        armR.classList.remove('arm-active-r');
+        
+        document.getElementById('bulb').classList.remove('lit');
+        document.getElementById('elec-l').style.boxShadow = "2px 2px 5px rgba(0,0,0,0.3)";
+        document.getElementById('elec-r').style.boxShadow = "2px 2px 5px rgba(0,0,0,0.3)";
+    }
+
+    // --- 动画2：微观解离 ---
+    let isMicroPlaying = false;
+    function playMicro() {
+        if(isMicroPlaying) return;
+        isMicroPlaying = true;
+        const stage = document.getElementById('microStage');
+        stage.innerHTML = '<p style="text-align:center; margin-top:10px; color:#555; font-weight:bold;">1. 固体状态：离子被束缚在晶格中</p>';
+        
+        const particles = [];
+        const stageW = stage.offsetWidth;
+        const stageH = stage.offsetHeight;
+        
+        for(let i=0; i<5; i++) {
+            for(let j=0; j<4; j++) {
+                let isNa = (i+j)%2 === 0;
+                let p = document.createElement('div');
+                p.className = 'micro-particle';
+                p.style.backgroundColor = isNa ? '#e74c3c' : '#2ecc71';
+                p.innerHTML = isNa ? 'Na⁺' : 'Cl⁻';
+                p.style.left = (stageW/2 - 70 + i*28) + 'px';
+                p.style.top = (60 + j*28) + 'px';
+                stage.appendChild(p);
+                particles.push(p);
+            }
+        }
+        
+        setTimeout(() => {
+            stage.firstChild.innerText = '2. 溶于水后：解离成自由移动的离子';
+            stage.firstChild.style.color = '#1a73e8';
+            
+            particles.forEach(p => {
+                p.style.left = (Math.random() * (stageW - 40) + 10) + 'px';
+                p.style.top = (Math.random() * (stageH - 60) + 30) + 'px';
+            });
+            
+            setTimeout(() => { isMicroPlaying = false; }, 2000);
+        }, 1500);
+    }
+</script>
+
+</body>
+</html>
