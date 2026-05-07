@@ -1,0 +1,398 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>钠与氯微观反应演示 - 修复渲染Bug版</title>
+    <style>
+        /* 基础样式重置 */
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #12151b;
+            font-family: "Microsoft YaHei", sans-serif;
+            color: #e2e8f0;
+            user-select: none;
+        }
+
+        /* 修复核心：让 3D 画布绝对定位于底层，避开一切排版冲突 */
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+        }
+
+        /* UI 层位于画布上方 */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10;
+            pointer-events: none; /* 让鼠标穿透，不影响 3D 交互（如果有的话） */
+        }
+
+        /* 原子标签定位 */
+        .atom-label-box {
+            position: absolute;
+            top: 12%;
+            text-align: center;
+            width: 350px;
+            transform: translateX(-50%);
+            transition: left 2s ease-in-out;
+        }
+        #na-label-box { left: 25%; }
+        #cl-label-box { left: 75%; }
+
+        .atom-name {
+            font-size: 26px;
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            margin-bottom: 6px;
+        }
+        .atom-desc {
+            font-size: 15px;
+            color: #94a3b8;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+        .text-na { color: #f5a623; }
+        .text-cl { color: #10b981; }
+
+        /* 游离电子 2D 追踪标签 */
+        #electron-tag {
+            position: absolute;
+            font-size: 14px;
+            font-weight: bold;
+            color: #f43f5e;
+            text-shadow: 0 1px 3px #000;
+            transform: translate(-50%, -150%);
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+
+        /* 底部控制面板 */
+        #bottom-panel {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 800px;
+            background: rgba(20, 25, 32, 0.85);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 25px 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            text-align: center;
+            pointer-events: auto; /* 恢复面板的鼠标事件，否则按钮点不到 */
+        }
+
+        #equation {
+            font-size: 28px;
+            font-weight: bold;
+            color: #34d399;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+            display: none;
+        }
+
+        #explanation {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            min-height: 50px;
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        button {
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .btn-primary { background-color: #2563eb; color: white; }
+        .btn-primary:hover { background-color: #3b82f6; transform: translateY(-2px); }
+        .btn-primary:disabled { background-color: #475569; color: #94a3b8; cursor: not-allowed; transform: none; }
+        .btn-danger { background-color: #e11d48; color: white; }
+        .btn-danger:hover { background-color: #f43f5e; transform: translateY(-2px); }
+
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div id="ui-layer">
+        
+        <div id="na-label-box" class="atom-label-box">
+            <div class="atom-name text-na">钠原子 (Na)</div>
+            <div class="atom-desc" id="na-desc">最外层有1个电子 (较易失去)</div>
+        </div>
+
+        <div id="cl-label-box" class="atom-label-box">
+            <div class="atom-name text-cl">氯原子 (Cl)</div>
+            <div class="atom-desc" id="cl-desc">最外层有7个电子 (较易得到)</div>
+        </div>
+
+        <div id="electron-tag">转移电子 (e⁻)</div>
+
+        <div id="bottom-panel">
+            <div id="equation">2Na + Cl₂ = 2NaCl</div>
+            <div id="explanation">
+                <strong>初始状态：</strong>请观察原子结构。钠原子最外层有1个电子，氯原子最外层有7个电子，且留有一个空位。双方均未达到稳定的 8 电子结构。此时两者距离较远，未发生反应。
+            </div>
+            <div class="btn-group">
+                <button id="nextBtn" class="btn-primary" onclick="nextStep()">下一步：原子靠近并重叠</button>
+                <button class="btn-danger" onclick="location.reload()">重新演示</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. 初始化 3D 引擎 (稳健版)
+        // ==========================================
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        // 确保直接使用 window 尺寸，杜绝 DOM 未渲染导致的 NaN 问题
+        const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 60;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // 优化高清屏显示
+        container.appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0xffffff, 0.9);
+        pointLight.position.set(0, 20, 20);
+        scene.add(pointLight);
+
+        // 窗口缩放自适应
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // ==========================================
+        // 2. 核心材质与原子构造函数
+        // ==========================================
+        const electronGeo = new THREE.SphereGeometry(0.5, 24, 24);
+        const naMat = new THREE.MeshPhongMaterial({ color: 0xf5a623, shininess: 100 }); // 钠的颜色
+        const clMat = new THREE.MeshPhongMaterial({ color: 0x10b981, shininess: 100 }); // 氯的颜色
+        const eNormalMat = new THREE.MeshPhongMaterial({ color: 0x38bdf8, emissive: 0x0284c7 }); // 普通电子
+        const eRedMat = new THREE.MeshPhongMaterial({ color: 0xf43f5e, emissive: 0xe11d48 });    // 转移的电子(标红)
+
+        function createAtomSystem(nucleusMat, nucleusSize, radii) {
+            const group = new THREE.Group();
+            const shells = [];
+            const electronList = [];
+
+            // 原子核
+            const nucleus = new THREE.Mesh(new THREE.SphereGeometry(nucleusSize, 32, 32), nucleusMat);
+            group.add(nucleus);
+
+            // 半透明轨道
+            radii.forEach(radius => {
+                const orbit = new THREE.Mesh(
+                    new THREE.TorusGeometry(radius, 0.04, 16, 100),
+                    new THREE.MeshBasicMaterial({ color: 0x64748b, transparent: true, opacity: 0.5 })
+                );
+                shells.push(orbit);
+                group.add(orbit);
+            });
+
+            return { group, shells, electronList, radii };
+        }
+
+        // ==========================================
+        // 3. 构建钠原子和氯原子
+        // ==========================================
+        const naRadii = [3.5, 6.5, 10.0];
+        const naSystem = createAtomSystem(naMat, 2.6, naRadii);
+        naSystem.group.position.x = -16;
+        scene.add(naSystem.group);
+
+        const clRadii = [2.5, 5.0, 8.0];
+        const clSystem = createAtomSystem(clMat, 2.0, clRadii);
+        clSystem.group.position.x = 16;
+        scene.add(clSystem.group);
+
+        // 统一排布电子的算法
+        function addElectrons(system, shellIndex, totalSlots, occupiedCount, isTransferElectron = false) {
+            const radius = system.radii[shellIndex];
+            const speed = 0.008; // 统一自转速度
+            
+            for (let i = 0; i < occupiedCount; i++) {
+                const angle = (i / totalSlots) * Math.PI * 2;
+                const mat = isTransferElectron ? eRedMat : eNormalMat;
+                const electron = new THREE.Mesh(electronGeo, mat);
+                system.group.add(electron);
+                system.electronList.push({ mesh: electron, angle: angle, radius: radius, speed: speed });
+            }
+        }
+
+        // 钠原子: 第一层2, 第二层8, 第三层1个待转移电子
+        addElectrons(naSystem, 0, 2, 2);
+        addElectrons(naSystem, 1, 8, 8);
+        addElectrons(naSystem, 2, 1, 1, true); 
+        
+        // 提取那个红色的转移电子，方便后续操作
+        let transferElectron = naSystem.electronList[naSystem.electronList.length - 1];
+
+        // 氯原子: 第一层2, 第二层8, 第三层8个槽位仅填7个
+        addElectrons(clSystem, 0, 2, 2);
+        addElectrons(clSystem, 1, 8, 8);
+        // 为了让空位（第8个位置）面向钠原子，我们巧妙地从 angle = 0 开始填 7 个，于是 angle = 7/8 * 2PI 的位置就是空的
+        addElectrons(clSystem, 2, 8, 7);
+
+        // 创建一个无形的锚点，代表氯原子上的【空位】
+        let emptySlotAngle = (7 / 8) * Math.PI * 2;
+        const emptySlotTracker = new THREE.Object3D();
+        clSystem.group.add(emptySlotTracker);
+
+        // ==========================================
+        // 4. 动画渲染循环
+        // ==========================================
+        let isTransferring = false;
+        let flightProgress = { t: 0 };
+        let startWorldPos = new THREE.Vector3();
+        const electronTag = document.getElementById('electron-tag');
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // 更新所有普通电子的轨道运动
+            [naSystem, clSystem].forEach(system => {
+                system.electronList.forEach(e => {
+                    e.angle += e.speed;
+                    e.mesh.position.set(Math.cos(e.angle) * e.radius, Math.sin(e.angle) * e.radius, 0);
+                });
+            });
+
+            // 更新氯原子空位锚点的位置 (与电子同步旋转)
+            emptySlotAngle += 0.008;
+            emptySlotTracker.position.set(Math.cos(emptySlotAngle) * clRadii[2], Math.sin(emptySlotAngle) * clRadii[2], 0);
+
+            // 如果处于“飞行转移”状态中
+            if (isTransferring) {
+                let currentTargetPos = new THREE.Vector3();
+                emptySlotTracker.getWorldPosition(currentTargetPos); // 实时获取空位的全局坐标
+                transferElectron.mesh.position.lerpVectors(startWorldPos, currentTargetPos, flightProgress.t);
+            }
+
+            // 更新 2D 文本标签的位置，始终追踪那颗红色的转移电子
+            if (transferElectron.mesh) {
+                const vector = new THREE.Vector3();
+                transferElectron.mesh.getWorldPosition(vector);
+                vector.project(camera);
+                const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+                const y = -(vector.y * 0.5 - 0.5) * window.innerHeight;
+                electronTag.style.left = `${x}px`;
+                electronTag.style.top = `${y - 15}px`;
+            }
+
+            // 让整个原子系统微微上下浮动，增加空间感
+            const time = Date.now() * 0.001;
+            naSystem.group.position.y = Math.sin(time) * 0.3;
+            clSystem.group.position.y = Math.cos(time + 1) * 0.3;
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // ==========================================
+        // 5. 分步剧本逻辑
+        // ==========================================
+        let step = 0;
+        const explanation = document.getElementById('explanation');
+        const nextBtn = document.getElementById('nextBtn');
+
+        function nextStep() {
+            step++;
+            if (step === 1) {
+                explanation.innerHTML = "<strong>有效碰撞：</strong>化学反应需要原子间靠近并碰撞。现在钠原子与氯原子开始靠近，外层轨道即将重叠。氯原子的电负性强，准备夺取钠的电子。";
+                nextBtn.innerText = "下一步：演示电子的转移";
+                nextBtn.disabled = true;
+
+                // 原子靠近
+                gsap.to(naSystem.group.position, { x: -6.5, duration: 2, ease: "power2.inOut" });
+                gsap.to(clSystem.group.position, { x: 6.5, duration: 2, ease: "power2.inOut" });
+                
+                // 顶部文字随之靠近
+                gsap.to(document.getElementById('na-label-box'), { left: "35%", duration: 2, ease: "power2.inOut" });
+                gsap.to(document.getElementById('cl-label-box'), { left: "65%", duration: 2, ease: "power2.inOut", onComplete: () => { nextBtn.disabled = false; } });
+            }
+            else if (step === 2) {
+                explanation.innerHTML = "<strong>电子发生转移：</strong>钠原子的 1 个电子被剥离，被氯原子夺走并填补了其外层的空位。在这个过程中，<strong>钠发生氧化反应，氯发生还原反应</strong>。";
+                nextBtn.innerText = "下一步：观察离子的形成";
+                nextBtn.disabled = true;
+
+                // 1. 将转移电子从钠原子的电子列表中移除
+                naSystem.electronList.pop();
+
+                // 2. 将其从钠原子中解绑，挂载到大场景中，并记录起飞点
+                transferElectron.mesh.getWorldPosition(startWorldPos);
+                scene.attach(transferElectron.mesh);
+
+                // 3. 启动飞行动画
+                isTransferring = true;
+                gsap.to(flightProgress, {
+                    t: 1, 
+                    duration: 2, 
+                    ease: "power1.inOut",
+                    onComplete: () => { 
+                        isTransferring = false;
+                        
+                        // 降落：将电子挂载给氯原子，并加入氯的电子军团
+                        clSystem.group.attach(transferElectron.mesh);
+                        transferElectron.angle = emptySlotAngle;
+                        transferElectron.radius = clRadii[2];
+                        clSystem.electronList.push(transferElectron);
+
+                        transferElectron.mesh.material = eNormalMat; // 变色融入
+                        nextBtn.disabled = false; 
+                    }
+                });
+            } 
+            else if (step === 3) {
+                explanation.innerHTML = "<strong>形成稳定化合物：</strong>钠失去电子层后体积大幅变小，成为钠离子(Na⁺)；氯得到电子成为氯离子(Cl⁻)。阴阳离子通过强大的静电作用结合成<strong>氯化钠 (NaCl)</strong>。";
+                document.getElementById('equation').style.display = "block";
+                nextBtn.style.display = "none";
+
+                // 更新文本
+                document.querySelector('#na-label-box .atom-name').innerHTML = "钠离子 (Na⁺)";
+                document.getElementById('na-desc').innerHTML = "化合价 0 → +1 <span style='color:#f43f5e'>(氧化)</span>";
+                document.querySelector('#cl-label-box .atom-name').innerHTML = "氯离子 (Cl⁻)";
+                document.getElementById('cl-desc').innerHTML = "化合价 0 → -1 <span style='color:#f43f5e'>(还原)</span>";
+                electronTag.style.opacity = 0;
+
+                // 隐藏钠原子最外层空轨道
+                gsap.to(naSystem.shells[2].material, { opacity: 0, duration: 1 });
+
+                // 离子进一步吸附成键
+                gsap.to(naSystem.group.position, { x: -5, duration: 1.5 });
+                gsap.to(clSystem.group.position, { x: 5, duration: 1.5 });
+            }
+        }
+    </script>
+</body>
+</html>
